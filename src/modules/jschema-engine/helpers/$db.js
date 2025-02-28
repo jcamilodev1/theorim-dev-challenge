@@ -33,7 +33,7 @@ exports.edit = async function(itemIn){
     delete item.sk;
 
     // Add lastUpdateTime for partition records
-    if (pk === '__partition') {
+    if (pk === '__parition') {
         item.lastUpdateTime = Date.now();
     }
 
