@@ -1,5 +1,6 @@
 const Engine = require('./jschema-engine/$engine');
 const { DataModel, UserModel, HistoryModel, RolesModel, LogsModel } = require('./helpers/$model');
+const HydratorState = require('./engine-hydrator-state');
 
 const Partitions = {};
 
@@ -35,7 +36,20 @@ function defaultModelerDef(datasetName,title){
 async function pullDatasets(){
     const compileStart = performance.now();
     console.log('Refreshing Datasets');
-    const partitions = await Engine.listPartitions();
+    
+    const lastRefreshTime = HydratorState.getLastRefreshTime();
+    const currentTime = Date.now();
+    
+    // Query partitions that have been updated since last refresh
+    const partitions = await Engine.listPartitions({
+        lastUpdateTime: `>=!${lastRefreshTime}`
+    });
+    
+    if (partitions.length === 0) {
+        console.log('No partitions updated since last refresh');
+        return true;
+    }
+
     const proms = [];
     for (const p of partitions){
         Partitions[p.name] = JSON.parse(JSON.stringify(p))
@@ -49,7 +63,11 @@ async function pullDatasets(){
         proms.push(prm)
     }
     await Promise.all(proms);
-    console.log('Partitions Refreshed in',performance.now()-compileStart);
+    
+    // Update last refresh time after successful pull
+    HydratorState.setLastRefreshTime(currentTime);
+    
+    console.log(`${partitions.length} Partitions Refreshed in`,performance.now()-compileStart);
     return true;
 }
 

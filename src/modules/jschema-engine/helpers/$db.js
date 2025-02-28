@@ -32,6 +32,10 @@ exports.edit = async function(itemIn){
     delete item.pk;
     delete item.sk;
 
+    // Add lastUpdateTime for partition records
+    if (pk === '__partition') {
+        item.lastUpdateTime = Date.now();
+    }
 
     let updateExpression = '';
     const expressionAttributeValues = {};
